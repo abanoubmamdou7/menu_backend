@@ -24,6 +24,7 @@ app.use("/uploads", express.static(path.join(__dirname, "modules", "files")));
 
 const defaultAllowedOrigins = [
   "https://menu-fe-eta.vercel.app",
+  "https://menu-frontend-iota.vercel.app",
   "https://adams-lounge.com",
   "http://localhost:5173",
   "http://localhost:4173",
