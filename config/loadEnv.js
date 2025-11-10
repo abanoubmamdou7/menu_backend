@@ -12,21 +12,45 @@ const possibleEnvPaths = [
     path.join(__dirname, '../.env'),        // BackEnd/.env
     path.join(__dirname, '../../.env'),     // Root .env
     path.join(process.cwd(), '.env'),       // Current working directory
-    '/config/.env'                      // Docker container path
+    '/config/.env'                          // Docker container path
 ];
 
 let envLoaded = false;
+const loadedEnvFiles = [];
+const seenPaths = new Set();
 
 // Try to load .env from different locations
-for (const envPath of possibleEnvPaths) {
-    if (fs.existsSync(envPath)) {
-        const result = dotenv.config({ path: envPath });
-        if (!result.error) {
-            console.log(`✅ Loaded environment from ${envPath}`);
-            envLoaded = true;
-            break;
-        }
+possibleEnvPaths.forEach((envPath, index) => {
+    const resolvedPath = path.isAbsolute(envPath) ? envPath : path.resolve(envPath);
+
+    if (seenPaths.has(resolvedPath)) {
+        return;
     }
+
+    seenPaths.add(resolvedPath);
+
+    if (!fs.existsSync(resolvedPath)) {
+        return;
+    }
+
+    const result = dotenv.config({
+        path: resolvedPath,
+        override: index !== 0
+    });
+
+    if (!result.error) {
+        envLoaded = true;
+        loadedEnvFiles.push({ path: resolvedPath, override: index !== 0 });
+    }
+});
+
+if (loadedEnvFiles.length === 1) {
+    console.log(`✅ Loaded environment from ${loadedEnvFiles[0].path}`);
+} else if (loadedEnvFiles.length > 1) {
+    const mergeInfo = loadedEnvFiles
+        .map(({ path: filePath, override }) => `${filePath}${override ? ' (override enabled)' : ''}`)
+        .join(' -> ');
+    console.log(`✅ Merged environment variables from: ${mergeInfo}`);
 }
 
 // If no .env file was found, try to use environment variables from Docker
